@@ -15,3 +15,6 @@ First, install a clean firmware version on your module to get the keys for api a
 
 
 A known issue: if tts generates text longer than 5 seconds, the session is interrupted, this is a common problem. But in my variant wakeword is not enabled on on_end trigger, because the flag is activated. I have to restart WW manually. This problem is rare when using a good tts module and adequate response token limit.
+
+
+The end result is a great tool for testing language models as conversation partners, it's quite fun. If the board is used in a quiet place, you should have no problems with the quality of recognition. For noisy places, consider purchasing a [reSpeaker Lite](https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration) or [VPE](https://www.home-assistant.io/voice-pe/)
