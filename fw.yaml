@@ -69,7 +69,6 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
-
 i2s_audio:
   - id: i2s
     i2s_lrclk_pin: GPIO05
@@ -125,7 +124,6 @@ media_player:
             - switch.is_off: timer_ringing
           then:
             - micro_wake_word.stop:
-
     on_announcement:
       - if:
           condition:
@@ -178,7 +176,6 @@ binary_sensor:
     on_click:
       then:
         - switch.toggle: ww_switch
-
 switch:
   - platform: gpio
     pin: GPIO10
@@ -209,7 +206,8 @@ switch:
             decibel_reduction: 0
             duration: 2.0s
     on_turn_on:
-        # - micro_wake_word.stop:
+        - micro_wake_word.start:
+        - delay: 100ms
         # Duck media audio by 20 decibels instantly
         - mixer_speaker.apply_ducking:
             id: media_spk_mixer_input
@@ -238,13 +236,23 @@ button:
     name: "VA stop"
     on_press:
       then:
-        - voice_assistant.stop:
+        - lambda: |-
+            id(is_tts_active) = false;
+        - delay: 300ms
+        - media_player.stop:
+            announcement: true
+#        - voice_assistant.stop:
+#        - if:
+#            condition:
+#              switch.is_on: ww_switch
+#            then:
+#              - delay: 500ms
+#              - micro_wake_word.start:
   - platform: template
     name: "VA start"
     on_press:
       then:
         - voice_assistant.start:
-
 script:
   - id: listening_timeout
     mode: restart 
@@ -258,7 +266,6 @@ script:
             - switch.turn_off: wake_led
             - voice_assistant.stop:
             - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
-
 micro_wake_word:
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
@@ -281,7 +288,6 @@ micro_wake_word:
                     id(is_beep_active) = true;
                 - media_player.speaker.play_on_device_media_file:
                     media_file: beep
-
                 - delay: 300ms
                 - voice_assistant.start:
                     wake_word: !lambda return wake_word;
@@ -296,7 +302,6 @@ voice_assistant:
   noise_suppression_level: 2.0
   volume_multiplier: 2.0
   auto_gain: 31dBFS
-  conversation_timeout: 120s
   on_client_connected:
         then:
           - delay: 50ms
