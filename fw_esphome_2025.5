@@ -121,21 +121,22 @@ media_player:
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
-          decibel_reduction: 25
-          duration: 0.3s
+          decibel_reduction: 24
+          duration: 0.25s
     on_state:
-      if:
-        condition:
-          and:
-            - not:
-                voice_assistant.is_running:
-            - not:
-                media_player.is_announcing:
-        then:
-          - mixer_speaker.apply_ducking:
-              id: media_spk_mixer_input
-              decibel_reduction: 0
-              duration: 1.5s
+      - delay: 0.7s
+      -  if:
+          condition:
+            and:
+              - not:
+                  voice_assistant.is_running:
+              - not:
+                  media_player.is_announcing:
+          then:
+            - mixer_speaker.apply_ducking:
+                id: media_spk_mixer_input
+                decibel_reduction: 0
+                duration: 1.5s
     files:
       - id: alarm_sound
         file: alarm.flac # Placed in the yaml directory. Should be encoded with a 48000 Hz sample rate, mono or stereo audio, and 16 bits per sample.
@@ -184,10 +185,6 @@ voice_assistant:
   on_stt_vad_start:
     # Turn off the script if speech is detected
     - script.stop: listening_timeout
-    - mixer_speaker.apply_ducking:
-        id: media_spk_mixer_input
-        decibel_reduction: 25
-        duration: 0.2s
 
   on_stt_vad_end:
     - switch.turn_off: wake_led
