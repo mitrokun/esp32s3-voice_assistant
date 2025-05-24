@@ -297,18 +297,25 @@ micro_wake_word:
               then:
                 - if:
                     condition:
-                      media_player.is_announcing:
+                      voice_assistant.is_running:
                     then:
-                      - media_player.stop:
-                          announcement: true
-                    # Start the voice assistant and play the wake sound, if enabled
+                      voice_assistant.stop:
+                    # Stop any other media player announcement
                     else:
-                      - media_player.speaker.play_on_device_media_file:
-                          media_file: beep
-                          announcement: true
-                      - delay: 300ms
-                      - voice_assistant.start:
-                          wake_word: !lambda return wake_word;
+                      - if:
+                          condition:
+                            media_player.is_announcing:
+                          then:
+                            - media_player.stop:
+                                announcement: true
+                          # Start the voice assistant and play the wake sound, if enabled
+                          else:
+                            - media_player.speaker.play_on_device_media_file:
+                                media_file: beep
+                                announcement: true
+                            - delay: 300ms
+                            - voice_assistant.start:
+                                wake_word: !lambda return wake_word;
 
 globals:
   # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
