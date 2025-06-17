@@ -143,9 +143,9 @@ media_player:
                 duration: 1.0s
     files:
       - id: alarm_sound
-        file: alarm.flac # Placed in the yaml directory. Should be encoded with a 48000 Hz sample rate, mono or stereo audio, and 16 bits per sample.
+        file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/alarm.flac # Should be encoded with a 48000 Hz sample rate, mono or stereo audio, and 16 bits per sample.
       - id: beep
-        file: r2d2d.flac
+        file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/r2d2d.flac
  
 voice_assistant:
   id: va
