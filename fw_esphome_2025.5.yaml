@@ -41,6 +41,8 @@ esp32:
       CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
       CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y" 
 
+network:
+  enable_ipv6: true
 # Enable logging
 logger:
 
@@ -93,7 +95,7 @@ speaker:
     i2s_dout_pin:   
       number: GPIO07 #DIN Pin of the MAX98357A Audio Amplifier
     sample_rate: 48000
-    buffer_duration: 100ms
+    buffer_duration: 90ms
 
   - platform: mixer
     id: mixer_speaker_id
@@ -122,8 +124,8 @@ media_player:
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
-          decibel_reduction: 24
-          duration: 0.25s
+          decibel_reduction: 25
+          duration: 0.2s
     on_state:
       - delay: 0.7s
       -  if:
@@ -136,13 +138,14 @@ media_player:
           then:
             - mixer_speaker.apply_ducking:
                 id: media_spk_mixer_input
-                decibel_reduction: 0
-                duration: 1.5s
+                decibel_reduction: !lambda |-
+                  return id(ducking_decibel).state;
+                duration: 1.0s
     files:
       - id: alarm_sound
-        file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/alarm.flac
+        file: alarm.flac # Placed in the yaml directory. Should be encoded with a 48000 Hz sample rate, mono or stereo audio, and 16 bits per sample.
       - id: beep
-        file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/r2d2d.flac
+        file: r2d2d.flac
  
 voice_assistant:
   id: va
@@ -165,6 +168,13 @@ voice_assistant:
           - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
         else:
           - lambda: id(voice_assistant_phase) = ${voice_assist_muted_phase_id};
+    - repeat:
+        count: 3  # Количество миганий
+        then:
+          - switch.toggle: wake_led
+          - delay: 150ms  # Задержка между включением/выключением
+          - switch.toggle: wake_led
+          - delay: 150ms  # Задержка перед следующим циклом
 
   # When the voice assistant disconnects to HA: 
   # Stop the voice assistant
@@ -252,7 +262,8 @@ voice_assistant:
           # Stop ducking audio.
           - mixer_speaker.apply_ducking:
               id: media_spk_mixer_input
-              decibel_reduction: 0
+              decibel_reduction: !lambda |-
+                return id(ducking_decibel).state;
               duration: 1.0s
           - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
 
@@ -276,7 +287,7 @@ voice_assistant:
 micro_wake_word:
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
-
+      id: okay_nabu
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
       internal: true
@@ -338,10 +349,6 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
-
-button:
-  - platform: restart
-    name: reboot
     
 script:
   - id: listening_timeout
@@ -373,6 +380,58 @@ script:
                   switch.is_off: timer_ringing
                 then:
                   - micro_wake_word.disable_model: stop
+
+select:
+  - platform: template
+    name: "Wake word sensitivity"
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Slightly+ sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      # Sets specific wake word probabilities computed for each particular model
+      # Note probability cutoffs are set as a quantized uint8 value, each comment has the corresponding floating point cutoff
+      # False Accepts per Hour values are tested against all units and channels from the Dinner Party Corpus.
+      # These cutoffs apply only to the specific models included in the firmware: okay_nabu@20241226.3, hey_jarvis@v2, hey_mycroft@v2
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
+        } else if (x == "Slightly+ sensitive") {
+          id(okay_nabu).set_probability_cutoff(191);    // 0.75
+        } else if (x == "Moderately sensitive") {
+          id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
+        } else if (x == "Very sensitive") {
+          id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
+        }
+  - platform: logger
+    id: logger_select
+    name: Logger Level
+    disabled_by_default: true
+
+button:
+  - platform: restart
+    name: reboot
+
+number:
+  - platform: template
+    name: "Decibel Reduction"
+    id: ducking_decibel
+    min_value: 0
+    max_value: 12
+    step: 1
+    initial_value: 6
+    unit_of_measurement: "dB"
+    set_action:
+      - mixer_speaker.apply_ducking:
+          id: media_spk_mixer_input
+          decibel_reduction: !lambda 'return x;'
+          duration: 0.2s
+          
 binary_sensor:
   - platform: gpio
     id: center_button
