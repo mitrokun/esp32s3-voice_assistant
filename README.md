@@ -14,7 +14,9 @@ There are many different test entities in the firmware that can be removed. I do
 First, install a clean firmware version on your module to get the keys for api and ota. You will also need sound files (duration matters), you can make them yourself or use mine. Copy them to the esphome directory or use the links to them.
 
 
-A known issue: if tts generates text longer than 5 seconds, the session is interrupted, this is a common problem.  ~~But in my variant wakeword is not enabled on on_end trigger, because the flag is activated. I have to restart WW manually. This problem is rare when using a good tts module and adequate response token limit.~~  WW never turns off now.
+A known issue: ~~if tts generates text longer than 5 seconds, the session is interrupted, this is a common problem.~~ Was fixed in 2025.07
+
+~~But in my variant wakeword is not enabled on on_end trigger, because the flag is activated. I have to restart WW manually. This problem is rare when using a good tts module and adequate response token limit.~~  WW never turns off now.
 
 
 The end result is a great tool for testing language models as conversation partners, it's quite fun. If the board is used in a quiet place, you should have no problems with the quality of recognition. For noisy places, consider purchasing a [reSpeaker Lite](https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration) or [VPE](https://www.home-assistant.io/voice-pe/)
