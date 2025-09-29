@@ -76,8 +76,8 @@ i2s_audio:
     i2s_lrclk_pin: GPIO05
     i2s_bclk_pin: GPIO06
   - id: i2s_in
-    i2s_lrclk_pin: GPIO09  #WS 
-    i2s_bclk_pin: GPIO08 #SCK
+    i2s_lrclk_pin: GPIO08  #WS 
+    i2s_bclk_pin: GPIO09 #SCK
 
 microphone:
   - platform: i2s_audio
