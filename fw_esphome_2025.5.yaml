@@ -76,8 +76,8 @@ i2s_audio:
     i2s_lrclk_pin: GPIO05
     i2s_bclk_pin: GPIO06
   - id: i2s_in
-    i2s_lrclk_pin: GPIO08  #WS 
-    i2s_bclk_pin: GPIO09 #SCK
+    i2s_lrclk_pin: GPIO09  #WS 
+    i2s_bclk_pin: GPIO08 #SCK
 
 microphone:
   - platform: i2s_audio
@@ -143,7 +143,7 @@ media_player:
                 duration: 1.0s
     files:
       - id: alarm_sound
-        file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/alarm.flac # Should be encoded with a 48000 Hz sample rate, mono or stereo audio, and 16 bits per sample.
+        file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/alarm.flac # 48000 Hz sample rate, mono or stereo audio, and 16 bps
       - id: beep
         file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/r2d2d.flac
  
@@ -151,6 +151,7 @@ voice_assistant:
   id: va
   microphone: mic_id
   media_player: speaker_media_player_id
+  micro_wake_word: mww
   noise_suppression_level: 2.0
   volume_multiplier: 2.0
   auto_gain: 31dBFS
@@ -206,10 +207,11 @@ voice_assistant:
   - homeassistant.event:
       event: esphome.stt_text
       data:
-        text: !lambda return x; 
+        text: !lambda return x;
 
-  on_tts_start: 
+  on_tts_start:
     - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+    # Start a script that would potentially enable the stop word if the response is longer than a second
     - script.execute: activate_stop_word_once
     # Finding a question mark at the end of a sentence.
     - lambda: |-
@@ -288,6 +290,8 @@ micro_wake_word:
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
       id: okay_nabu
+    - model: https://raw.githubusercontent.com/Darkmadda/ha-v-pe/refs/heads/main/hey_glados.json
+      id: hey_glados
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
       internal: true
@@ -321,9 +325,10 @@ micro_wake_word:
                                 announcement: true
                           # Start the voice assistant and play the wake sound, if enabled
                           else:
-                            - media_player.speaker.play_on_device_media_file:
-                                media_file: beep
-                                announcement: true
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: !lambda return id(beep);
                             - delay: 300ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
@@ -354,7 +359,7 @@ script:
   - id: listening_timeout
     mode: restart 
     then:
-      - delay: 4s
+      - delay: 3s
       - if:
           condition:
             lambda: |-
@@ -380,6 +385,23 @@ script:
                   switch.is_off: timer_ringing
                 then:
                   - micro_wake_word.disable_model: stop
+  - id: play_sound
+    parameters:
+      priority: bool
+      sound_file: "audio::AudioFile*"
+    then:
+      - lambda: |-
+          if (priority) {
+            id(speaker_media_player_id)
+              ->make_call()
+              .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
+              .set_announcement(true)
+              .perform();
+          }
+          if ( (id(speaker_media_player_id).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING ) || priority) {
+            id(speaker_media_player_id)
+              ->play_file(sound_file, true, false);
+          }
 
 select:
   - platform: template
