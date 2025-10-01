@@ -66,7 +66,6 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
-
 psram:
   mode: octal
   speed: 80MHz
@@ -110,6 +109,33 @@ speaker:
   - platform: resampler
     id: announcement_spk_resampling_input
     output_speaker: announcement_spk_mixer_input
+
+globals:
+  # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
+  - id: init_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+  # Global variable tracking the phase of the voice assistant (defined above). Initialized to not_ready
+  - id: voice_assistant_phase
+    type: int
+    restore_value: no
+    initial_value: ${voice_assist_not_ready_phase_id}
+  # Variable for tracking TTS triggering 
+  - id: is_tts_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Variable for tracking built-in continued conversations 
+  - id: question_flag
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  # Variable for tracking ww
+  - id: last_wake_word
+    type: std::string
+    restore_value: no
+    initial_value: '""'
 
 media_player:
   - platform: speaker
@@ -256,10 +282,12 @@ voice_assistant:
     - if:
         condition:
           and:
+            - switch.is_on: continued_conversation_enabled
             - lambda: 'return !id(question_flag);'
             - lambda: 'return id(is_tts_active);'
         then:
           - voice_assistant.start:
+              wake_word: !lambda return id(last_wake_word);
         else: 
           # Stop ducking audio.
           - mixer_speaker.apply_ducking:
@@ -325,36 +353,19 @@ micro_wake_word:
                                 announcement: true
                           # Start the voice assistant and play the wake sound, if enabled
                           else:
+                            - lambda: id(last_wake_word) = wake_word;
                             - script.execute:
                                 id: play_sound
                                 priority: true
                                 sound_file: !lambda return id(beep);
                             - delay: 300ms
+                          #  - media_player.speaker.play_on_device_media_file:
+                          #      media_file: beep
+                          #      announcement: true
+                          #  - delay: 300ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
-globals:
-  # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
-  - id: init_in_progress
-    type: bool
-    restore_value: no
-    initial_value: 'true'
-  # Global variable tracking the phase of the voice assistant (defined above). Initialized to not_ready
-  - id: voice_assistant_phase
-    type: int
-    restore_value: no
-    initial_value: ${voice_assist_not_ready_phase_id}
-  # Variable for tracking TTS triggering 
-  - id: is_tts_active
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-  # Variable for tracking built-in continued conversations 
-  - id: question_flag
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-    
 script:
   - id: listening_timeout
     mode: restart 
@@ -529,3 +540,9 @@ switch:
                     not:
                       media_player.is_announcing:
                 - delay: 1000ms
+  - platform: template
+    name: Continued Conversation
+    id: continued_conversation_enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    icon: mdi:chat-processing-outline
