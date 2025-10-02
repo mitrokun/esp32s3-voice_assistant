@@ -242,6 +242,9 @@ voice_assistant:
           lambda: 'return !x.empty();'
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          # Set the flag when the stage is reached
+          - lambda: |-
+              id(is_tts_active) = true;
           # Start a script that would potentially enable the stop word if the response is longer than a second
           - script.execute: activate_stop_word_once
 
@@ -265,11 +268,6 @@ voice_assistant:
 #        format: "question_flag: %d (0=false, 1=true)"
 #        args:
 #          - id(question_flag)
-
-  on_tts_end:
-    # Set the flag when the stage is reached
-    - lambda: |-
-        id(is_tts_active) = true;
 
   on_timer_finished:
     then:
