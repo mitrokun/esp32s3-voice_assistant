@@ -235,10 +235,25 @@ voice_assistant:
       data:
         text: !lambda return x;
 
+  on_intent_progress:
+    - if:
+        condition:
+          # A nonempty x variable means a streaming TTS url was sent to the media player
+          lambda: 'return !x.empty();'
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          # Start a script that would potentially enable the stop word if the response is longer than a second
+          - script.execute: activate_stop_word_once
+
   on_tts_start:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
-    # Start a script that would potentially enable the stop word if the response is longer than a second
-    - script.execute: activate_stop_word_once
+    - if:
+        condition:
+          # The intent_progress trigger didn't start the TTS Reponse
+          lambda: 'return id(voice_assistant_phase) != ${voice_assist_replying_phase_id};'
+        then:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
+          # Start a script that would potentially enable the stop word if the response is longer than a second
+          - script.execute: activate_stop_word_once
     # Finding a question mark at the end of a sentence.
     - lambda: |-
         bool is_question = false;
@@ -285,6 +300,7 @@ voice_assistant:
             - switch.is_on: continued_conversation_enabled
             - lambda: 'return !id(question_flag);'
             - lambda: 'return id(is_tts_active);'
+            - lambda: 'return id(last_wake_word) != "Stop";'
         then:
           - voice_assistant.start:
               wake_word: !lambda return id(last_wake_word);
@@ -341,8 +357,12 @@ micro_wake_word:
                 - if:
                     condition:
                       voice_assistant.is_running:
+                    # Restart the pipeline if Continued conversation is enabled
+                    # Or stop it completely by saying “Stop”
                     then:
-                      voice_assistant.stop:
+                      - lambda: id(last_wake_word) = wake_word;
+                      - delay: 100ms
+                      - voice_assistant.stop:
                     # Stop any other media player announcement
                     else:
                       - if:
@@ -462,7 +482,7 @@ number:
     set_action:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
-          decibel_reduction: !lambda 'return x;'
+          decibel_reduction: !lambda 'return (int)x;'
           duration: 0.2s
           
 binary_sensor:
