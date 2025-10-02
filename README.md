@@ -20,3 +20,34 @@ A known issue: ~~if tts generates text longer than 5 seconds, the session is int
 
 
 The end result is a great tool for testing language models as conversation partners, it's quite fun. If the board is used in a quiet place, you should have no problems with the quality of recognition. For noisy places, consider purchasing a [reSpeaker Lite](https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration) or [VPE](https://www.home-assistant.io/voice-pe/)
+
+```mermaid
+graph TD
+    subgraph "Process Flow"
+        A[on_intent_progress: Start Reply] --> B{Playing Streaming Reply...};
+    
+        B -- Await full response --> BB[on_tts_start:</b><br/> Was a question asked?];
+        BB -- No --> C[on_end: Final Check];
+    end
+
+    subgraph "Outcomes"
+        C --> D{Continued Conversation</b><br/> switch ON?};
+        
+        D -- No --> STOP;
+        D -- Yes --> E{Is the flag check successful?};
+
+        E -- No --> STOP;
+        E -- Yes --> RESTART;
+        
+        BB -- Yes --> RESTART;
+
+        B -- Interrupted by main WW --> RESTART;
+        B -- Interrupted by Stop WW --> STOP;
+    end
+
+    RESTART([<b>RE-ACTIVATE LISTENING</b>]);
+    STOP([<b>END CONVERSATION</b>]);
+
+    style RESTART fill:#28a745,stroke:#fff,stroke-width:2px,color:#fff
+    style STOP fill:#dc3545,stroke:#fff,stroke-width:2px,color:#fff
+```
