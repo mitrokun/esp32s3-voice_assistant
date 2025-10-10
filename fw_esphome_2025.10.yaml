@@ -175,12 +175,14 @@ media_player:
  
 voice_assistant:
   id: va
-  microphone: mic_id
+  microphone:
+    microphone: mic_id
+    gain_factor: 16
   media_player: speaker_media_player_id
   micro_wake_word: mww
   noise_suppression_level: 2.0
-  volume_multiplier: 2.0
-  auto_gain: 31dBFS
+  auto_gain: 0 dbfs
+  volume_multiplier: 1
 
   # When the voice assistant connects to HA:
   # Set init_in_progress to false (Initialization is over).
@@ -376,7 +378,7 @@ micro_wake_word:
                                 id: play_sound
                                 priority: true
                                 sound_file: !lambda return id(beep);
-                            - delay: 300ms
+                            - delay: 280ms
                           #  - media_player.speaker.play_on_device_media_file:
                           #      media_file: beep
                           #      announcement: true
