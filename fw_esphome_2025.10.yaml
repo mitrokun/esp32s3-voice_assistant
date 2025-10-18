@@ -270,6 +270,13 @@ voice_assistant:
 #        format: "question_flag: %d (0=false, 1=true)"
 #        args:
 #          - id(question_flag)
+  on_tts_end:
+    - if:
+        condition:
+          switch.is_on: extended_dialog
+        then:
+          - lambda: |-
+              id(is_tts_active) = true;
 
   on_timer_finished:
     then:
@@ -566,3 +573,9 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     icon: mdi:chat-processing-outline
+  - platform: template
+    name: Continued Conversation+
+    id: extended_dialog
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: mdi:chat-plus-outline
