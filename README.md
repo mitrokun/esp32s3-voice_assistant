@@ -9,7 +9,13 @@ Tested on clones from Aliexpress for 5$ with modules INMP441+MAX98357A. I don't 
 I recommend using the pin of the linear stabilizer and the shortest possible wire to get power to the microphone. I encountered noise when using the 3.3V pad near the antenna. Be sure to record your voice in the [HA](https://www.home-assistant.io/voice_control/troubleshooting/#to-tweak-the-assist-audio-configuration-for-your-device) to evaluate the quality.
 
 After the answer is voiced, the listening stage is re-enabled. The waiting time for the start of speech is set in the listening_timeout script. To disable the session, you can wait for this period or use one of the words from the `homeassistant_HassNevermind` intent (add your own if needed).
-There are many different test entities in the firmware that can be removed. I don't use buttons, so the timer is turned off by voice, you have to say the wake word. But this is easily modified.
+
+<img width="314" height="103" alt="image" src="https://github.com/user-attachments/assets/6e7eb5f4-8332-4f8f-89b4-0c29b0369a2b" />
+
+- Continued Conversation - always starts a new session upon receiving a response from the LLM
+- Continued Conversation+ - after any response or audio confirmation.
+
+I don't use buttons, so the timer is turned off by voice, you have to say the wake word. But this is easily modified.
 
 First, install a clean firmware version on your module to get the keys for api and ota. You will also need sound files (duration matters), you can make them yourself or use mine. Copy them to the esphome directory or use the links to them.
 
