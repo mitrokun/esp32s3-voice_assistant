@@ -484,7 +484,8 @@ number:
     min_value: 0
     max_value: 12
     step: 1
-    initial_value: 0
+    restore_value: true
+    optimistic: true
     unit_of_measurement: "dB"
     set_action:
       - mixer_speaker.apply_ducking:
