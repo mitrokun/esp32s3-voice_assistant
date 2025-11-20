@@ -1,5 +1,5 @@
 substitutions:
-  # Phases of the Voice AssistantGPIO8
+  # Phases of the Voice Assistant
   # IDLE: The voice assistant is ready to be triggered by a wake-word
   voice_assist_idle_phase_id: '1'
   # LISTENING: The voice assistant is ready to listen to a voice command (after being triggered by the wake word)
