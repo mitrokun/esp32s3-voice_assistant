@@ -69,6 +69,7 @@ wifi:
 psram:
   mode: octal
   speed: 80MHz
+  ignore_not_found: false
 
 i2s_audio:
   - id: i2s
