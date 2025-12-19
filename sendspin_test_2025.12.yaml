@@ -196,11 +196,8 @@ media_source:
         file: https://github.com/mitrokun/esp32s3-voice_assistant/raw/main/r2d2d.flac
 
 media_player:
-  # 1. Групповой плеер (для мультирума)
   - platform: sendspin
     id: sendspin_group_media_player
-
-  # 2. Железный плеер
   - platform: speaker_source
     name: None
     id: speaker_media_player_id
