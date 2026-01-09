@@ -39,12 +39,12 @@ external_components:
   - source:
       type: git
       url: https://github.com/esphome/esphome
-      ref: 9d2d2f6287a72af6397dfd93ee56fbab25c1d32f
+      ref: 71c8c6bdfc8006902eb0ea7b15bc86c575cef9be
     components: [mdns, sendspin]
   - source:
       type: git
       url: https://github.com/esphome/esphome
-      ref: 72499eaed2ed54316aca90d368053aa2e1a54f5f
+      ref: f5c1a8111df78e32d07d7a7bb800018808cdc0e7
     refresh: 0s
     components: [file, http_request, media_source, speaker_source]
 
