@@ -16,8 +16,8 @@ substitutions:
   voice_assist_muted_phase_id: '12'
 
 esphome:
-  name: esp32va01s
-  friendly_name: esp32va01s
+  name: esp32va01
+  friendly_name: esp32va01
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -381,6 +381,8 @@ micro_wake_word:
                                 announcement: true
                           # Start the voice assistant and play the wake sound, if enabled
                           else:
+                            - homeassistant.event:
+                                event: esphome.ww_detected_01
                             - lambda: id(last_wake_word) = wake_word;
                             - script.execute:
                                 id: play_sound
