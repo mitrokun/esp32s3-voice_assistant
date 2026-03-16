@@ -1,4 +1,9 @@
 # esp32s3-VA
+
+---
+##### The `sendspin_test` version is the most up-to-date version of the code with multiroom protocol support for MA, but it still has a critical [bug](https://github.com/esphome/home-assistant-voice-pe/issues/514) that occurs when using slow TTS. Please keep this in mind when using it.
+---
+
 Voice assistant satellite for Home Assistant.
 Amateur Esphome firmware for esp32-s3 with PSRAM for continued conversation. 
 
