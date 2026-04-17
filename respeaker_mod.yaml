@@ -1424,7 +1424,7 @@ voice_assistant:
               condition:
                 media_player.is_announcing:
                   id: external_media_player
-              timeout: 2s
+              timeout: 3s
           - if:
               condition:
                 media_player.is_announcing:
@@ -1441,17 +1441,19 @@ voice_assistant:
     - wait_until:
         not:
           voice_assistant.is_running:
+    - delay: 500ms 
     
-    # 3. Turning off the led
-    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
-    - script.execute: control_leds
-
-    # 4. Handling the error state
+    # 3. Handling the error state
     - if:
         condition:
           lambda: return id(voice_assistant_phase) == ${voice_assist_error_phase_id};
         then:
           - delay: 1s
+
+    # 4. Turning off the led
+    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - script.execute: control_leds
+    
 
     # 5. Restart session when conditions are met
     - if:
@@ -1462,7 +1464,6 @@ voice_assistant:
             - lambda: 'return id(is_tts_active);'
             - lambda: 'return id(last_wake_word) != "Stop";' 
         then:
-          - delay: 200ms 
           - voice_assistant.start:
               wake_word: !lambda return id(last_wake_word);
         else:
