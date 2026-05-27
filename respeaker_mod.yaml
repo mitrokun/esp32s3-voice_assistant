@@ -1412,26 +1412,8 @@ voice_assistant:
   # When the voice assistant ends ...
   on_end:
     # 1. Ждем, пока договорит динамик (если был ответ)
-    - if:
-        condition:
-          lambda: 'return id(is_tts_active);'
-        then:
-          - wait_until:
-              condition:
-                media_player.is_announcing:
-                  id: external_media_player
-              timeout: 2s
-          - if:
-              condition:
-                media_player.is_announcing:
-                  id: external_media_player
-              then:
-                - wait_until:
-                    not:
-                      media_player.is_announcing:
-                        id: external_media_player
-              else:
-                - lambda: id(is_tts_active) = false;
+    # теперь это контролирует keep_playback_timeout_cancelled
+    
 
     # 2. Ждем, пока ассистент официально закроет сессию
     - wait_until:
