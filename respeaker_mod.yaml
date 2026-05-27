@@ -44,28 +44,14 @@ external_components:
     components: 
       - respeaker_lite
     refresh: 0s
-  - source:
-      # https://github.com/esphome/esphome/pull/14933
-      type: git
-      url: https://github.com/kahrendt/esphome
-      ref: 7a6cf5c8472b7e2fa18ee0fc314f66a80d249e32
-    components: [const, media_source, sendspin]
-  - source:
-      # https://github.com/esphome/esphome/pull/12429
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: ff8ce89556748509d7ee8724e12d9d43d3c8c1e8
-    refresh: 0s
-    components: [http_request]
-
 
 esphome:
   name: esp32va02
   friendly_name: esp32va02
   project: 
     name: formatbce.Respeaker Lite Satellite
-    version: 2026.3.1
-  min_version: 2026.3.0
+    version: 2026.5.0
+  min_version: 2026.5.0
   on_boot:
     priority: 375
     then:
@@ -373,10 +359,9 @@ binary_sensor:
       # Simple Click:
       #   - Abort "things" in order
       #     - Timer
-      #     - Announcements
       #     - Voice Assistant Pipeline run
-      #     - Music
-      #   - Starts the voice assistant if it is not yet running and if the device is not muted.
+      #     - Announcements
+      #   - Toggles Play/Pause for Music
       - timing:
           - ON for at most 1s
           - OFF for at least 0.25s
@@ -414,23 +399,8 @@ binary_sensor:
                                         - media_player.pause:
                                             id: external_media_player
                                       else:
-                                        - if:
-                                            condition:
-                                              and:
-                                                - switch.is_off: mic_mute_switch
-                                                - not:
-                                                    voice_assistant.is_running
-                                            then:
-                                              - if:
-                                                  condition:
-                                                    switch.is_on: button_sound
-                                                  then:
-                                                    - script.execute:
-                                                        id: play_sound
-                                                        priority: true
-                                                        sound_file: "center_button_press_sound"
-                                                    - delay: 300ms
-                                              - voice_assistant.start:
+                                        - media_player.play:
+                                            id: external_media_player
       # Double Click
       #  . Exposed as an event entity. To be used in automations inside Home Assistant
       - timing:
@@ -480,7 +450,7 @@ binary_sensor:
                     id: button_press_event
                     event_type: "triple_press"
       # Long Press
-      #  . Exposed as an event entity. To be used in automations inside Home Assistant
+      #  . Starts the voice assistant if it is not yet running and if the device is not muted.
       - timing:
           - ON for at least 1s
         then:
@@ -490,16 +460,22 @@ binary_sensor:
               then:
                 - if:
                     condition:
-                      switch.is_on: button_sound
+                      and:
+                        - switch.is_off: mic_mute_switch
+                        - not:
+                            voice_assistant.is_running
                     then:
-                      - script.execute:
-                          id: play_sound
-                          priority: false
-                          sound_file: "center_button_long_press_sound"
-                - light.turn_off: led_internal
-                - event.trigger:
-                    id: button_press_event
-                    event_type: "long_press"
+                      - if:
+                          condition:
+                            switch.is_on: button_sound
+                          then:
+                            - script.execute:
+                                id: play_sound
+                                priority: true
+                                sound_file: "wake_word_triggered_sound"
+                            - delay: 300ms
+                      - voice_assistant.start:
+                          wake_word: !lambda return id(last_wake_word);
 
 
 light:
@@ -956,7 +932,7 @@ script:
           condition:
             media_player.is_announcing:
               id: external_media_player
-          timeout: 5s
+          timeout: 8s
       - delay: 1s
       # Enable stop wake word
       - if:
@@ -986,6 +962,22 @@ script:
             - voice_assistant.stop:
             - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
             - script.execute: control_leds
+
+  - id: keep_playback_timeout_cancelled
+    mode: restart
+    then:
+      - repeat:
+          count: 30
+          then:
+            - lambda: |-
+                auto s = id(external_media_player).state;
+                if (s == media_player::MEDIA_PLAYER_STATE_ANNOUNCING ||
+                    s == media_player::MEDIA_PLAYER_STATE_PLAYING) {
+                  id(keep_playback_timeout_cancelled).stop();
+                  return;
+                }
+                App.scheduler.cancel_timeout(id(va), "playing");
+            - delay: 500ms
 
 i2s_audio:
   - id: i2s_output
@@ -1065,9 +1057,6 @@ sendspin:
   id: sendspin_hub
   task_stack_in_psram: false
 
-http_request:
-  buffer_size_rx: 2048
-
 audio_file:
   - id: center_button_press_sound
     file: ${center_button_press_sound_file}
@@ -1091,18 +1080,18 @@ audio_file:
     file: ${timer_finished_sound_file}
   - id: wake_word_triggered_sound
     file: ${wake_word_triggered_sound_file}
-  - id: error_cloud_expired
-    file: ${error_cloud_expired_sound_file}
+  - id: peeb
+    file: peeb.flac
 
 media_source:
   - platform: audio_file
     id: audio_file_announcement_source
 
-  - platform: http_request
+  - platform: audio_http
     id: http_announcement_source
     buffer_size: 250000
 
-  - platform: http_request
+  - platform: audio_http
     id: http_media_source
     buffer_size: 500000
 
@@ -1164,10 +1153,10 @@ respeaker_lite:
   mute_state:
     internal: true
     id: mute_state
-    on_press:
+    on_press: # Когда микрофон выключен (Mute ON)
       then:
         - micro_wake_word.stop: 
-    on_release:
+    on_release: # Когда микрофон включен (Mute OFF)
       then:
         - micro_wake_word.start: 
   firmware_version:
@@ -1224,12 +1213,12 @@ micro_wake_word:
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
+      # probability_cutoff: 0.8
       id: okay_nabu
     - model: https://raw.githubusercontent.com/mitrokun/espeak-ng-data/refs/heads/main/mww/tessa.json
       id: hey_tessa
     - model: https://raw.githubusercontent.com/mitrokun/espeak-ng-data/refs/heads/main/mww/luna_ru.json
       id: hey_luna
-      # Russian version, works quite aggressively
     - model: https://raw.githubusercontent.com/mitrokun/espeak-ng-data/refs/heads/main/mww/stop.json
       id: stop
       internal: true
@@ -1272,10 +1261,20 @@ micro_wake_word:
                                 condition:
                                   switch.is_on: wake_sound
                                 then:
-                                  - script.execute:
-                                      id: play_sound
-                                      priority: true
-                                      sound_file: "wake_word_triggered_sound"
+                                  - if:
+                                      condition:
+                                        lambda: |-
+                                          return (wake_word == "Okay Nabu");
+                                      then:
+                                        - script.execute:
+                                            id: play_sound
+                                            priority: true
+                                            sound_file: "wake_word_triggered_sound"
+                                      else:
+                                        - script.execute:
+                                            id: play_sound
+                                            priority: true
+                                            sound_file: "peeb"
                                   - delay: 360ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
@@ -1313,8 +1312,10 @@ select:
 voice_assistant:
   id: va
   microphone:
-    microphone: i2s_mics
-    channels: 0
+    - microphone: i2s_mics
+      channels: 0
+    - microphone: i2s_mics
+      channels: 1
   media_player: external_media_player
   micro_wake_word: mww
   use_wake_word: false
@@ -1346,14 +1347,7 @@ voice_assistant:
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_error_phase_id};
           - script.execute: control_leds
-    - if:
-        condition:
-          - lambda: return code == "cloud-auth-failed";
-        then:
-          - script.execute:
-              id: play_sound
-              priority: true
-              sound_file: "error_cloud_expired"
+
   # When the voice assistant starts: Play a wake up sound, duck audio.
   on_start:
     - mixer_speaker.apply_ducking:
@@ -1385,6 +1379,7 @@ voice_assistant:
           # A nonempty x variable means a streaming TTS url was sent to the media player
           lambda: 'return !x.empty();'
         then:
+          - script.execute: keep_playback_timeout_cancelled
           - lambda: id(voice_assistant_phase) = ${voice_assist_replying_phase_id};
           - lambda: id(is_tts_active) = true; # Флаг: мы получили ответ
           - script.execute: control_leds
@@ -1408,14 +1403,15 @@ voice_assistant:
         }
         id(question_flag) = is_question;
 
-#  on_tts_end:
+  on_tts_end:
+    - script.execute: keep_playback_timeout_cancelled
 #    - text_sensor.template.publish:
 #        id: tts_uri
 #        state: !lambda 'return x;'
     
   # When the voice assistant ends ...
   on_end:
-    # 1. Wait for the audio stream to end
+    # 1. Ждем, пока договорит динамик (если был ответ)
     - if:
         condition:
           lambda: 'return id(is_tts_active);'
@@ -1424,7 +1420,7 @@ voice_assistant:
               condition:
                 media_player.is_announcing:
                   id: external_media_player
-              timeout: 3s
+              timeout: 2s
           - if:
               condition:
                 media_player.is_announcing:
@@ -1437,37 +1433,41 @@ voice_assistant:
               else:
                 - lambda: id(is_tts_active) = false;
 
-    # 2. We wait for the assistant to officially close the session
+    # 2. Ждем, пока ассистент официально закроет сессию
     - wait_until:
         not:
           voice_assistant.is_running:
-    - delay: 500ms 
+    - delay: 0.5s
     
-    # 3. Handling the error state
+    # 3. Обработка ошибки
     - if:
         condition:
           lambda: return id(voice_assistant_phase) == ${voice_assist_error_phase_id};
         then:
           - delay: 1s
 
-    # 4. Turning off the led
+
+    # 4. Сбрасываем индикацию в IDLE (свет гаснет)
     - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
     - script.execute: control_leds
-    
 
-    # 5. Restart session when conditions are met
+
+
+    # 5. Рестарт сессии (только если HA сам её не перезапустил по вопросу)
     - if:
         condition:
           and:
             - switch.is_on: continued_conversation_enabled
-            - lambda: 'return !id(question_flag);'
+            - lambda: 'return !id(question_flag);' # Уступаем дорогу штатному механизму HA
             - lambda: 'return id(is_tts_active);'
             - lambda: 'return id(last_wake_word) != "Stop";' 
         then:
+          # Даем системе "отдышаться" после перехода в IDLE
+          #- delay: 300ms 
           - voice_assistant.start:
               wake_word: !lambda return id(last_wake_word);
         else:
-          # Okay, this conversation is over. Let's turn up the music volume
+          # Всё, беседа окончена. Возвращаем громкость музыки.
           - mixer_speaker.apply_ducking:
               id: media_mixing_input
               decibel_reduction: !lambda |-
