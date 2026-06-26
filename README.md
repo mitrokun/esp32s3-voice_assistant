@@ -2,6 +2,9 @@
 
 ---
 ##### The `sendspin_test` version is the most up-to-date version of the code with multiroom protocol support for MA, but it still has a critical [bug](https://github.com/esphome/home-assistant-voice-pe/issues/514) that occurs when using slow TTS. Please keep this in mind when using it.
+
+#### upd. A working [solution](https://github.com/esphome/esphome/issues/16462) to this problem has been released by a community member.
+
 ---
 
 Voice assistant satellite for Home Assistant.
@@ -31,6 +34,7 @@ A known issue: ~~if tts generates text longer than 5 seconds, the session is int
 
 
 The end result is a great tool for testing language models as conversation partners, it's quite fun. If the board is used in a quiet place, you should have no problems with the quality of recognition. For noisy places, consider purchasing a [reSpeaker Lite](https://github.com/formatBCE/Respeaker-Lite-ESPHome-integration) or [VPE](https://www.home-assistant.io/voice-pe/)
+
 
 ```mermaid
 graph TD
@@ -62,3 +66,6 @@ graph TD
     style RESTART fill:#28a745,stroke:#fff,stroke-width:2px,color:#fff
     style STOP fill:#dc3545,stroke:#fff,stroke-width:2px,color:#fff
 ```
+Demo:
+
+[![Demo](https://img.youtube.com/vi/dUTZ90t8LAQ/hqdefault.jpg)](https://www.youtube.com/shorts/dUTZ90t8LAQ)
